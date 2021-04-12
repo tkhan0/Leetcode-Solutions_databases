@@ -1,0 +1,59 @@
+Table: Candidate
+
++-----+---------+
+| id  | Name    |
++-----+---------+
+| 1   | A       |
+| 2   | B       |
+| 3   | C       |
+| 4   | D       |
+| 5   | E       |
++-----+---------+  
+Table: Vote
+
++-----+--------------+
+| id  | CandidateId  |
++-----+--------------+
+| 1   |     2        |
+| 2   |     4        |
+| 3   |     3        |
+| 4   |     2        |
+| 5   |     5        |
++-----+--------------+
+id is the auto-increment primary key,
+CandidateId is the id appeared in Candidate table.
+Write a sql to find the name of the winning candidate, the above example will return the winner B.
+
++------+
+| Name |
++------+
+| B    |
++------+
+Notes:
+
+You may assume there is no tie, in other words there will be only one winning candidate.
+
+
+Solution:
+
+# Write your MySQL query statement below
+
+select 
+    distinct name from
+(
+    select name, 
+           dense_rank()over(order by cnt desc) as rnk from
+(
+    select 
+            name, 
+            count(candidateid)over(partition by candidateid) as cnt from
+(
+    select 
+            a.name, 
+            b.candidateid 
+    from candidate a inner join vote b on
+            a.id = b.candidateid
+)sub
+    )
+    sub1) 
+        sub2 where sub2.rnk = 1
