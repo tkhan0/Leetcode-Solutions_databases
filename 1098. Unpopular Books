@@ -1,0 +1,84 @@
+Table: Books
+
++----------------+---------+
+| Column Name    | Type    |
++----------------+---------+
+| book_id        | int     |
+| name           | varchar |
+| available_from | date    |
++----------------+---------+
+book_id is the primary key of this table.
+Table: Orders
+
++----------------+---------+
+| Column Name    | Type    |
++----------------+---------+
+| order_id       | int     |
+| book_id        | int     |
+| quantity       | int     |
+| dispatch_date  | date    |
++----------------+---------+
+order_id is the primary key of this table.
+book_id is a foreign key to the Books table.
+ 
+
+Write an SQL query that reports the books that have sold less than 10 copies in the last year, excluding books that have been available for less than 1 month from today. Assume today is 2019-06-23.
+
+The query result format is in the following example:
+
+Books table:
++---------+--------------------+----------------+
+| book_id | name               | available_from |
++---------+--------------------+----------------+
+| 1       | "Kalila And Demna" | 2010-01-01     |
+| 2       | "28 Letters"       | 2012-05-12     |
+| 3       | "The Hobbit"       | 2019-06-10     |
+| 4       | "13 Reasons Why"   | 2019-06-01     |
+| 5       | "The Hunger Games" | 2008-09-21     |
++---------+--------------------+----------------+
+
+Orders table:
++----------+---------+----------+---------------+
+| order_id | book_id | quantity | dispatch_date |
++----------+---------+----------+---------------+
+| 1        | 1       | 2        | 2018-07-26    |
+| 2        | 1       | 1        | 2018-11-05    |
+| 3        | 3       | 8        | 2019-06-11    |
+| 4        | 4       | 6        | 2019-06-05    |
+| 5        | 4       | 5        | 2019-06-20    |
+| 6        | 5       | 9        | 2009-02-02    |
+| 7        | 5       | 8        | 2010-04-13    |
++----------+---------+----------+---------------+
+
+Result table:
++-----------+--------------------+
+| book_id   | name               |
++-----------+--------------------+
+| 1         | "Kalila And Demna" |
+| 2         | "28 Letters"       |
+| 5         | "The Hunger Games" |
++-----------+--------------------+
+
+Solution:
+
+# Write your MySQL query statement below
+
+select distinct book_id, name from
+(
+select book_id, name, ifnull(cnt_last_year,0) as cnt_last_year,
+ifnull(cnt_current_yr,0) as cnt_current_yr, dispatch_yr,dispatch_date,available_from
+from
+(
+select book_id, name, 
+case when dispatch_yr = extract(year from '2019-06-23')-1 then sum(quantity)over(partition by book_id, dispatch_yr) end as cnt_last_year,
+case when dispatch_yr = extract(year from '2019-06-23') then sum(quantity)over(partition by book_id, dispatch_yr)  end as cnt_current_yr,
+dispatch_yr,dispatch_date,available_from
+from
+(
+select a.book_id, a.name, a.available_from, b.order_id, 
+ifnull(b.quantity,0) as quantity,dispatch_date,
+ifnull(extract(year from b.dispatch_date),0) as dispatch_yr
+from books a left join orders b on
+a.book_id = b.book_id)sub)sub1)sub2
+where cnt_last_year < 10 and
+available_from < date_add('2019-06-23',Interval -30 day)
